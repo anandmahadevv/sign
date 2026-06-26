@@ -17,7 +17,7 @@ export default function RootLayout({
     <ClerkProvider
       appearance={{
         baseTheme: dark,
-      }}
+      } as any}
     >
       <html lang="en">
         <head>
