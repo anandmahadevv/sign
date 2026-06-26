@@ -79,3 +79,31 @@ export async function completeOnboarding(formData: FormData) {
   
   redirect('/dashboard');
 }
+
+export async function createLead(formData: FormData) {
+  const { userId, orgId } = await auth();
+  if (!userId) throw new Error('Unauthorized');
+
+  const shopName = formData.get('shopName') as string;
+  const clientName = formData.get('clientName') as string;
+  const interestLevel = formData.get('interestLevel') as string;
+  const quotedPrice = parseFloat(formData.get('quotedPrice') as string) || 0;
+  const notes = formData.get('notes') as string;
+
+  const { error } = await supabase.from('field_visits').insert({
+    shop_name: shopName,
+    client_name: clientName,
+    interest_level: interestLevel,
+    quoted_price: quotedPrice,
+    notes: notes,
+    user_id: userId,
+    org_id: orgId || null,
+  });
+
+  if (error) {
+    throw new Error('Failed to create lead: ' + error.message);
+  }
+
+  revalidatePath('/dashboard/leads');
+  redirect('/dashboard/leads');
+}

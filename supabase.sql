@@ -50,3 +50,22 @@ CREATE POLICY "Allow anonymous update access" ON profiles FOR UPDATE USING (true
 
 -- Phase 9 Additions
 ALTER TABLE agreements ADD COLUMN IF NOT EXISTS client_ip text;
+
+-- Phase 10: Field Visits (CRM)
+CREATE TABLE field_visits (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  shop_name text NOT NULL,
+  client_name text NOT NULL,
+  interest_level text NOT NULL, -- High, Medium, Low, Not Interested
+  quoted_price numeric,
+  notes text,
+  org_id text,
+  user_id text,
+  created_at timestamp with time zone DEFAULT now()
+);
+
+ALTER TABLE field_visits ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow anonymous read access" ON field_visits FOR SELECT USING (true);
+CREATE POLICY "Allow anonymous insert access" ON field_visits FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow anonymous update access" ON field_visits FOR UPDATE USING (true);

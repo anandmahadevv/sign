@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Home, FileText, Settings, Plus, Menu, X } from 'lucide-react';
+import { Home, FileText, Settings, Plus, Menu, X, Users } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { UserButton, Show, SignInButton, ClerkLoading, ClerkLoaded, OrganizationSwitcher } from '@clerk/nextjs';
 
@@ -79,6 +79,14 @@ export default function DashboardSidebar({ profile, userName, roleName }: { prof
             >
               <FileText className="h-4 w-4" />
               Agreements
+            </Link>
+            <Link
+              href="/dashboard/leads"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white"
+            >
+              <Users className="h-4 w-4" />
+              Field Leads
             </Link>
             <Link
               href="/dashboard/create"
