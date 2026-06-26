@@ -4,8 +4,10 @@ import React, { useState } from 'react';
 import { createLead } from '@/app/actions';
 import Link from 'next/link';
 import { ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function CreateLeadPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -14,6 +16,7 @@ export default function CreateLeadPage() {
     const formData = new FormData(e.currentTarget);
     try {
       await createLead(formData);
+      router.push('/dashboard/leads');
     } catch (err: any) {
       alert(err.message || 'An error occurred while saving the lead.');
       setLoading(false);

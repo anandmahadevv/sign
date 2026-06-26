@@ -107,7 +107,7 @@ export async function createLead(formData: FormData) {
   }
 
   revalidatePath('/dashboard/leads');
-  redirect('/dashboard/leads');
+  return { success: true };
 }
 
 export async function updateLead(id: string, formData: FormData) {
@@ -143,7 +143,7 @@ export async function updateLead(id: string, formData: FormData) {
 
   revalidatePath('/dashboard/leads');
   revalidatePath(`/dashboard/leads/${id}`);
-  redirect(`/dashboard/leads/${id}`);
+  return { success: true };
 }
 
 export async function deleteLead(id: string) {
@@ -163,5 +163,5 @@ export async function deleteLead(id: string) {
   }
 
   revalidatePath('/dashboard/leads');
-  redirect('/dashboard/leads');
+  return { success: true };
 }

@@ -3,8 +3,10 @@
 import React, { useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { deleteLead } from '@/app/actions';
+import { useRouter } from 'next/navigation';
 
 export default function DeleteLeadButton({ id }: { id: string }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   const handleDelete = async () => {
@@ -12,6 +14,7 @@ export default function DeleteLeadButton({ id }: { id: string }) {
       setLoading(true);
       try {
         await deleteLead(id);
+        router.push('/dashboard/leads');
       } catch (error) {
         console.error(error);
         alert('Failed to delete lead.');

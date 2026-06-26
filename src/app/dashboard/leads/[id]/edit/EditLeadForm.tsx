@@ -3,8 +3,10 @@
 import React, { useState } from 'react';
 import { updateLead } from '@/app/actions';
 import { Save, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function EditLeadForm({ lead }: { lead: any }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -13,6 +15,7 @@ export default function EditLeadForm({ lead }: { lead: any }) {
     const formData = new FormData(e.currentTarget);
     try {
       await updateLead(lead.id, formData);
+      router.push(`/dashboard/leads/${lead.id}`);
     } catch (err: any) {
       alert(err.message || 'An error occurred while updating the lead.');
       setLoading(false);
