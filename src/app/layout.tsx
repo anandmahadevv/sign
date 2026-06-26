@@ -16,8 +16,9 @@ export default function RootLayout({
   return (
     <ClerkProvider
       appearance={{
+        // @ts-ignore
         baseTheme: dark,
-      } as any}
+      }}
     >
       <html lang="en">
         <head>
