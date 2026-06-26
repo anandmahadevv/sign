@@ -8,18 +8,17 @@ export const metadata: Metadata = {
   description: "Generate and sign client agreements effortlessly.",
 };
 
+const clerkAppearance: any = {
+  baseTheme: dark,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider
-      appearance={{
-        // @ts-ignore
-        baseTheme: dark,
-      }}
-    >
+    <ClerkProvider appearance={clerkAppearance}>
       <html lang="en">
         <head>
           <link href="https://db.onlinewebfonts.com/c/bb5de19d87c09a95216dc6ccd96e37c6?family=Nimbus+Sans+TW01" rel="stylesheet" type="text/css"/>
