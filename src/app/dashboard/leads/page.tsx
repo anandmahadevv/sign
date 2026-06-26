@@ -74,7 +74,7 @@ export default async function LeadsPage() {
                 <div className="flex items-center gap-2 text-sm text-white/70">
                   <DollarSign className="h-4 w-4 text-white/40" />
                   <span>
-                    {lead.quoted_price ? `Quoted: $${lead.quoted_price}` : 'No price quoted'}
+                    {lead.quoted_price ? `Quoted: ₹${lead.quoted_price}` : 'No price quoted'}
                   </span>
                 </div>
 

@@ -1,9 +1,25 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import { createLead } from '@/app/actions';
 import Link from 'next/link';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Loader2 } from 'lucide-react';
 
 export default function CreateLeadPage() {
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    const formData = new FormData(e.currentTarget);
+    try {
+      await createLead(formData);
+    } catch (err: any) {
+      alert(err.message || 'An error occurred while saving the lead.');
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
@@ -19,7 +35,7 @@ export default function CreateLeadPage() {
         </div>
       </div>
 
-      <form action={createLead} className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-6">
         
         <div className="space-y-4">
           <div>
@@ -73,7 +89,7 @@ export default function CreateLeadPage() {
             </label>
             <div className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                <span className="text-white/40">$</span>
+                <span className="text-white/40">₹</span>
               </div>
               <input
                 type="number"
@@ -104,10 +120,11 @@ export default function CreateLeadPage() {
         <div className="pt-4 border-t border-white/10">
           <button
             type="submit"
-            className="w-full flex items-center justify-center gap-2 rounded-md bg-[#28c840] px-4 py-4 text-sm font-bold text-black shadow-sm hover:bg-[#28c840]/90 transition-colors"
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 rounded-md bg-[#28c840] px-4 py-4 text-sm font-bold text-black shadow-sm hover:bg-[#28c840]/90 transition-colors disabled:opacity-50"
           >
-            <Save className="h-5 w-5" />
-            Save Lead
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+            {loading ? 'Saving...' : 'Save Lead'}
           </button>
         </div>
       </form>
