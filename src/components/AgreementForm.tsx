@@ -37,7 +37,7 @@ const defaultData: AgreementData = {
   address: '',
   projectName: '',
   projectType: '',
-  description: 'The Agency will design, develop, and deploy a custom software solution tailored to the Client\\'s specifications. This includes full-stack development, database architecture, and frontend user interface design.',
+  description: "The Agency will design, develop, and deploy a custom software solution tailored to the Client's specifications. This includes full-stack development, database architecture, and frontend user interface design.",
   deliverables: '1. Fully functional web application\n2. Secure user authentication system\n3. Integrated database architecture\n4. Mobile-responsive user interface\n5. Final source code transfer upon full payment',
   startDate: '',
   completionDate: '',
