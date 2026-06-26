@@ -86,6 +86,7 @@ export async function createLead(formData: FormData) {
 
   const shopName = formData.get('shopName') as string;
   const clientName = formData.get('clientName') as string;
+  const phone = formData.get('phone') as string;
   const interestLevel = formData.get('interestLevel') as string;
   const quotedPrice = parseFloat(formData.get('quotedPrice') as string) || 0;
   const notes = formData.get('notes') as string;
@@ -93,6 +94,7 @@ export async function createLead(formData: FormData) {
   const { error } = await supabase.from('field_visits').insert({
     shop_name: shopName,
     client_name: clientName,
+    phone: phone || null,
     interest_level: interestLevel,
     quoted_price: quotedPrice,
     notes: notes,
@@ -102,6 +104,62 @@ export async function createLead(formData: FormData) {
 
   if (error) {
     throw new Error('Failed to create lead: ' + error.message);
+  }
+
+  revalidatePath('/dashboard/leads');
+  redirect('/dashboard/leads');
+}
+
+export async function updateLead(id: string, formData: FormData) {
+  const { userId, orgId } = await auth();
+  if (!userId) throw new Error('Unauthorized');
+
+  const shopName = formData.get('shopName') as string;
+  const clientName = formData.get('clientName') as string;
+  const phone = formData.get('phone') as string;
+  const interestLevel = formData.get('interestLevel') as string;
+  const quotedPrice = parseFloat(formData.get('quotedPrice') as string) || 0;
+  const notes = formData.get('notes') as string;
+
+  let query = supabase.from('field_visits').update({
+    shop_name: shopName,
+    client_name: clientName,
+    phone: phone || null,
+    interest_level: interestLevel,
+    quoted_price: quotedPrice,
+    notes: notes,
+  }).eq('id', id);
+
+  if (orgId) {
+    query = query.eq('org_id', orgId);
+  } else {
+    query = query.eq('user_id', userId).is('org_id', null);
+  }
+
+  const { error } = await query;
+  if (error) {
+    throw new Error('Failed to update lead: ' + error.message);
+  }
+
+  revalidatePath('/dashboard/leads');
+  revalidatePath(`/dashboard/leads/${id}`);
+  redirect(`/dashboard/leads/${id}`);
+}
+
+export async function deleteLead(id: string) {
+  const { userId, orgId } = await auth();
+  if (!userId) throw new Error('Unauthorized');
+
+  let query = supabase.from('field_visits').delete().eq('id', id);
+  if (orgId) {
+    query = query.eq('org_id', orgId);
+  } else {
+    query = query.eq('user_id', userId).is('org_id', null);
+  }
+
+  const { error } = await query;
+  if (error) {
+    throw new Error('Failed to delete lead: ' + error.message);
   }
 
   revalidatePath('/dashboard/leads');

@@ -67,6 +67,19 @@ export default function CreateLeadPage() {
           </div>
 
           <div>
+            <label htmlFor="phone" className="block text-sm font-medium text-white mb-1">
+              Phone Number (Optional)
+            </label>
+            <input
+              type="tel"
+              name="phone"
+              id="phone"
+              className="w-full rounded-md border border-white/10 bg-black/50 px-4 py-3 text-white placeholder-white/30 focus:border-[#28c840] focus:ring-1 focus:ring-[#28c840] outline-none transition-all"
+              placeholder="+1 (555) 000-0000"
+            />
+          </div>
+
+          <div>
             <label htmlFor="interestLevel" className="block text-sm font-medium text-white mb-1">
               Interest Level <span className="text-red-500">*</span>
             </label>

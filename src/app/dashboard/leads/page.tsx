@@ -56,7 +56,7 @@ export default async function LeadsPage() {
       {leads && leads.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {leads.map((lead) => (
-            <div key={lead.id} className="rounded-xl border border-white/10 bg-white/5 p-5 hover:bg-white/[0.07] transition-colors relative flex flex-col">
+            <Link href={`/dashboard/leads/${lead.id}`} key={lead.id} className="rounded-xl border border-white/10 bg-white/5 p-5 hover:bg-white/[0.07] transition-colors relative flex flex-col group cursor-pointer">
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-2 text-white font-semibold">
                   <Store className="h-4 w-4 text-[#28c840]" />
@@ -85,11 +85,14 @@ export default async function LeadsPage() {
                 )}
               </div>
               
-              <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-2 text-xs text-white/40">
-                <Clock className="h-3 w-3" />
-                {new Date(lead.created_at).toLocaleDateString()} at {new Date(lead.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between text-xs text-white/40">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-3 w-3" />
+                  {new Date(lead.created_at).toLocaleDateString()} at {new Date(lead.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+                <span className="text-[#28c840] opacity-0 group-hover:opacity-100 transition-opacity">View Details &rarr;</span>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       ) : (

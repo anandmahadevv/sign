@@ -56,6 +56,7 @@ CREATE TABLE field_visits (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   shop_name text NOT NULL,
   client_name text NOT NULL,
+  phone text,
   interest_level text NOT NULL, -- High, Medium, Low, Not Interested
   quoted_price numeric,
   notes text,
@@ -69,3 +70,7 @@ ALTER TABLE field_visits ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow anonymous read access" ON field_visits FOR SELECT USING (true);
 CREATE POLICY "Allow anonymous insert access" ON field_visits FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow anonymous update access" ON field_visits FOR UPDATE USING (true);
+CREATE POLICY "Allow anonymous delete access" ON field_visits FOR DELETE USING (true);
+
+-- Phase 10 Update
+ALTER TABLE field_visits ADD COLUMN IF NOT EXISTS phone text;
