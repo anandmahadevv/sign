@@ -395,6 +395,7 @@ function TextArea({ label, ...props }: React.TextareaHTMLAttributes<HTMLTextArea
 import dynamic from 'next/dynamic';
 import { useRef } from 'react';
 const SignatureCanvas = dynamic(() => import('react-signature-canvas'), { ssr: false });
+const SignatureCanvasAny = SignatureCanvas as any;
 
 function SignaturePadWrapper({ onSave }: { onSave: (sig: string) => void }) {
   const sigCanvas = useRef<any>(null);
@@ -404,8 +405,7 @@ function SignaturePadWrapper({ onSave }: { onSave: (sig: string) => void }) {
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
         <span className="text-2xl font-bold text-gray-500">Sign Here</span>
       </div>
-      {/* @ts-ignore: Legacy signature canvas doesn't map ref correctly in React 19 */}
-      <SignatureCanvas
+      <SignatureCanvasAny
         ref={sigCanvas}
         penColor="black"
         canvasProps={{ className: 'absolute inset-0 w-full h-full cursor-crosshair' }}

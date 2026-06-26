@@ -2,6 +2,7 @@
 
 import React, { useRef, useState } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
+const SignatureCanvasAny = SignatureCanvas as any;
 import { RotateCcw, CheckCircle2 } from 'lucide-react';
 
 export default function SignaturePad({ onSign }: { onSign: (signature: string) => void }) {
@@ -49,8 +50,7 @@ export default function SignaturePad({ onSign }: { onSign: (signature: string) =
       </div>
       
       <div className="rounded-md border border-gray-300 bg-white">
-        {/* @ts-ignore: Legacy signature canvas doesn't map ref correctly in React 19 */}
-        <SignatureCanvas
+        <SignatureCanvasAny
           ref={sigCanvas}
           penColor="black"
           canvasProps={{
