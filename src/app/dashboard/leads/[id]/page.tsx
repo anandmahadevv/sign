@@ -6,13 +6,14 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, Store, User, Phone, DollarSign, Clock, FileText, Pencil, Trash2 } from 'lucide-react';
 import DeleteLeadButton from './DeleteLeadButton';
 
-export default async function LeadDetailsPage({ params }: { params: { id: string } }) {
+export default async function LeadDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
   const { userId, orgId } = await auth();
 
   let query = supabase
     .from('field_visits')
     .select('*')
-    .eq('id', params.id);
+    .eq('id', resolvedParams.id);
 
   if (orgId) {
     query = query.eq('org_id', orgId);

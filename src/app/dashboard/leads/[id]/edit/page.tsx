@@ -6,13 +6,14 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import EditLeadForm from './EditLeadForm';
 
-export default async function EditLeadPage({ params }: { params: { id: string } }) {
+export default async function EditLeadPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
   const { userId, orgId } = await auth();
 
   let query = supabase
     .from('field_visits')
     .select('*')
-    .eq('id', params.id);
+    .eq('id', resolvedParams.id);
 
   if (orgId) {
     query = query.eq('org_id', orgId);
