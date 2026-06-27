@@ -13,6 +13,8 @@ export default function SignAgreementPage({ params }: { params: Promise<{ id: st
   const [agreement, setAgreement] = useState<any>(null);
   const [signature, setSignature] = useState<string | null>(null);
   const [agencyName, setAgencyName] = useState<string>('HackArena');
+  const [brandColor, setBrandColor] = useState<string>('#111827');
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
@@ -35,12 +37,27 @@ export default function SignAgreementPage({ params }: { params: Promise<{ id: st
         if (ownerId) {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('agency_name')
+            .select('agency_name, brand_color, logo_url')
             .eq('owner_id', ownerId)
             .single();
-          if (profile && profile.agency_name) {
-            setAgencyName(profile.agency_name);
+          if (profile) {
+            if (profile.agency_name) setAgencyName(profile.agency_name);
+            if (profile.brand_color) setBrandColor(profile.brand_color);
+            if (profile.logo_url) setLogoUrl(profile.logo_url);
           }
+        }
+        
+        // Log viewed_at and IP if not already viewed
+        if (!data.viewed_at) {
+          let viewerIp = 'Unknown IP';
+          try {
+            const res = await fetch('https://api.ipify.org?format=json');
+            const ipData = await res.json();
+            viewerIp = ipData.ip;
+          } catch (e) {
+            console.warn("Could not fetch IP", e);
+          }
+          await supabase.from('agreements').update({ viewed_at: new Date().toISOString(), signer_ip: viewerIp, status: 'Viewed' }).eq('id', resolvedParams.id);
         }
       }
       setLoading(false);
@@ -60,16 +77,17 @@ export default function SignAgreementPage({ params }: { params: Promise<{ id: st
 
     const signedAt = new Date().toISOString();
 
-    // Save to Supabase
-    const { error } = await supabase
-      .from('agreements')
-      .update({ 
-        client_signature: sig, 
-        client_ip: clientIp,
-        status: 'Signed',
-        signed_at: signedAt
-      })
-      .eq('id', resolvedParams.id);
+      // Save to Supabase
+      const { error } = await supabase
+        .from('agreements')
+        .update({ 
+          client_signature: sig, 
+          client_ip: clientIp, // legacy col
+          signed_ip: clientIp,
+          status: 'Signed',
+          signed_at: signedAt
+        })
+        .eq('id', resolvedParams.id);
 
     if (!error) {
       setSignature(sig);
@@ -144,8 +162,12 @@ export default function SignAgreementPage({ params }: { params: Promise<{ id: st
       
       {/* Client View Header */}
       <div className="max-w-3xl mx-auto mb-8 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Logo className="h-6 w-6 text-gray-900" />
+        <div className="flex items-center gap-3">
+          {logoUrl ? (
+            <img src={logoUrl} alt={`${agencyName} logo`} className="h-8 object-contain" />
+          ) : (
+            <Logo className="h-6 w-6 text-gray-900" />
+          )}
           <span className="text-xl font-bold tracking-tight">Sign <span className="font-medium text-gray-600 text-sm">by {agencyName}</span></span>
         </div>
         <div className="flex items-center gap-3">
@@ -200,8 +222,8 @@ export default function SignAgreementPage({ params }: { params: Promise<{ id: st
             
             <section>
               <h3 className="font-bold text-lg text-gray-900 mb-2">2. Description & Deliverables</h3>
-              <p className="text-sm text-gray-700 leading-relaxed mb-3">{agreement.description}</p>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{agreement.deliverables}</p>
+              <div className="text-sm text-gray-700 mb-3" dangerouslySetInnerHTML={{ __html: agreement.description }} />
+              <div className="text-sm text-gray-700" dangerouslySetInnerHTML={{ __html: agreement.deliverables }} />
             </section>
 
             <section>
@@ -247,7 +269,7 @@ export default function SignAgreementPage({ params }: { params: Promise<{ id: st
                 <p className="text-sm font-bold text-gray-900 mb-4">Client Authorization</p>
                 
                 {!signature ? (
-                  <SignaturePad onSign={handleSign} />
+                  <SignaturePad onSign={handleSign} brandColor={brandColor} />
                 ) : (
                   <div className="h-40 bg-green-50 border-2 border-green-500 rounded-lg flex flex-col items-center justify-center p-2">
                     <img src={signature} alt="Client Signature" className="max-h-full" />
@@ -261,13 +283,31 @@ export default function SignAgreementPage({ params }: { params: Promise<{ id: st
           {/* Audit Trail Section */}
           {signature && (
             <div className="mt-12 border-t border-gray-200 pt-8">
-              <h3 className="font-bold text-xs text-gray-500 uppercase tracking-widest mb-4">Document Audit Trail</h3>
-              <div className="bg-gray-50 rounded-lg p-5 font-mono text-xs text-gray-600 space-y-2 border border-gray-200">
+              <div className="flex items-center gap-2 mb-4 text-gray-500">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <h3 className="font-bold text-xs uppercase tracking-widest">Document Audit Trail</h3>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-5 font-mono text-xs text-gray-600 space-y-2 border border-gray-200 shadow-inner">
                 <p><span className="font-bold text-gray-900">Document ID:</span> {agreement.id}</p>
+                <p><span className="font-bold text-gray-900">Provider:</span> {agencyName}</p>
                 <p><span className="font-bold text-gray-900">Signed By:</span> {agreement.client_name} ({agreement.email})</p>
-                <p><span className="font-bold text-gray-900">Client IP Address:</span> {agreement.client_ip || 'Captured securely'}</p>
-                <p><span className="font-bold text-gray-900">Timestamp:</span> {agreement.signed_at ? new Date(agreement.signed_at).toUTCString() : new Date().toUTCString()}</p>
-                <p className="break-all"><span className="font-bold text-gray-900">Signature Hash:</span> sha256-{signature.length > 50 ? signature.substring(signature.length - 64) : signature}</p>
+                <div className="grid grid-cols-2 gap-4 mt-2 pt-2 border-t border-gray-200">
+                  <div>
+                    <p className="font-bold text-gray-900 mb-1">View Event</p>
+                    <p>IP: {agreement.signer_ip || 'Captured securely'}</p>
+                    <p>Time: {agreement.viewed_at ? new Date(agreement.viewed_at).toUTCString() : 'Unknown'}</p>
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900 mb-1">Sign Event</p>
+                    <p>IP: {agreement.client_ip || agreement.signed_ip || 'Captured securely'}</p>
+                    <p>Time: {agreement.signed_at ? new Date(agreement.signed_at).toUTCString() : new Date().toUTCString()}</p>
+                  </div>
+                </div>
+                <div className="mt-2 pt-2 border-t border-gray-200">
+                  <p className="break-all"><span className="font-bold text-gray-900">Signature Hash:</span> sha256-{signature.length > 50 ? signature.substring(signature.length - 64) : signature}</p>
+                </div>
               </div>
             </div>
           )}

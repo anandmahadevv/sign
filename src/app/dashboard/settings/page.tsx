@@ -20,7 +20,13 @@ export default async function SettingsPage() {
   const handleSave = async (formData: FormData) => {
     'use server';
     const agencyName = formData.get('agencyName') as string;
-    await updateProfile({ agency_name: agencyName });
+    const brandColor = formData.get('brandColor') as string;
+    const logoUrl = formData.get('logoUrl') as string;
+    await updateProfile({ 
+      agency_name: agencyName,
+      brand_color: brandColor,
+      logo_url: logoUrl
+    });
   };
   return (
     <div className="flex max-w-3xl flex-col gap-8">
@@ -55,6 +61,37 @@ export default async function SettingsPage() {
               <label className="text-xs font-medium text-white/70">Business Address</label>
               <input
                 defaultValue="123 Innovation Drive, Tech City, TX 78701"
+                className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-white/30 focus:bg-white/10"
+              />
+            </div>
+          </div>
+        </div>
+
+        <hr className="border-white/5" />
+
+        {/* Custom Branding */}
+        <div>
+          <h2 className="text-lg font-semibold text-white mb-4">Custom Branding (Client Portal)</h2>
+          <div className="grid grid-cols-2 gap-5">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-white/70">Brand Color (Hex code)</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  name="brandColor"
+                  defaultValue={profile?.brand_color || "#111827"}
+                  className="h-10 w-10 cursor-pointer rounded-md border border-white/10 bg-transparent p-1 transition-colors"
+                />
+                <span className="text-sm text-white/50">Primary color for buttons and accents on the signing page.</span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-white/70">Logo URL</label>
+              <input
+                name="logoUrl"
+                type="url"
+                placeholder="https://example.com/logo.png"
+                defaultValue={profile?.logo_url || ""}
                 className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-white/30 focus:bg-white/10"
               />
             </div>

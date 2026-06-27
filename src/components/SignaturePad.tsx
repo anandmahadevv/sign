@@ -5,7 +5,7 @@ import SignatureCanvas from 'react-signature-canvas';
 const SignatureCanvasAny = SignatureCanvas as any;
 import { RotateCcw, CheckCircle2 } from 'lucide-react';
 
-export default function SignaturePad({ onSign }: { onSign: (signature: string) => void }) {
+export default function SignaturePad({ onSign, brandColor }: { onSign: (signature: string) => void, brandColor?: string }) {
   const sigCanvas = useRef<SignatureCanvas>(null);
   const [signed, setSigned] = useState(false);
 
@@ -65,7 +65,8 @@ export default function SignaturePad({ onSign }: { onSign: (signature: string) =
 
       <button
         onClick={handleSign}
-        className="w-full rounded-md bg-black px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-gray-800"
+        style={brandColor ? { backgroundColor: brandColor } : {}}
+        className={`w-full rounded-md px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90 ${brandColor ? '' : 'bg-gray-900'}`}
       >
         Accept & Sign
       </button>

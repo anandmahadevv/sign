@@ -25,6 +25,10 @@ CREATE TABLE agreements (
   status text DEFAULT 'Draft' NOT NULL, -- Draft, Pending, Signed
   client_signature text, -- base64 image data
   signed_at timestamp with time zone,
+  viewed_at timestamp with time zone,
+  signer_ip text,
+  signed_ip text,
+  audit_trail jsonb DEFAULT '[]'::jsonb,
   created_at timestamp with time zone DEFAULT now()
 );
 
@@ -39,7 +43,9 @@ CREATE POLICY "Allow anonymous update access" ON agreements FOR UPDATE USING (tr
 -- Profiles table for SaaS Multi-tenancy (Agency Branding)
 CREATE TABLE profiles (
   owner_id text PRIMARY KEY,
-  agency_name text NOT NULL DEFAULT 'Sign'
+  agency_name text NOT NULL DEFAULT 'Sign',
+  brand_color text DEFAULT '#111827',
+  logo_url text
 );
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
@@ -74,3 +80,25 @@ CREATE POLICY "Allow anonymous delete access" ON field_visits FOR DELETE USING (
 
 -- Phase 10 Update
 ALTER TABLE field_visits ADD COLUMN IF NOT EXISTS phone text;
+
+-- Phase 11: Invoices
+CREATE TABLE invoices (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  agreement_id uuid REFERENCES agreements(id) ON DELETE CASCADE,
+  invoice_number text NOT NULL,
+  amount numeric NOT NULL,
+  status text DEFAULT 'Unpaid' NOT NULL, -- Unpaid, Paid, Cancelled
+  issue_date date NOT NULL,
+  due_date date NOT NULL,
+  notes text,
+  user_id text,
+  org_id text,
+  created_at timestamp with time zone DEFAULT now()
+);
+
+ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow anonymous read access" ON invoices FOR SELECT USING (true);
+CREATE POLICY "Allow anonymous insert access" ON invoices FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow anonymous update access" ON invoices FOR UPDATE USING (true);
+CREATE POLICY "Allow anonymous delete access" ON invoices FOR DELETE USING (true);

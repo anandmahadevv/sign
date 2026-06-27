@@ -1,10 +1,12 @@
 import React from 'react';
 import Link from 'next/link';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, Filter, Receipt } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { deleteAgreement } from '@/app/actions';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import EmptyState from '@/components/EmptyState';
+import GenerateInvoiceModal from './GenerateInvoiceModal';
 
 export const revalidate = 0; // Disable caching so it always fetches fresh data
 
@@ -14,7 +16,7 @@ export default async function AgreementsPage() {
     redirect('/sign-in');
   }
 
-  const query = supabase.from('agreements').select('*').order('created_at', { ascending: false });
+  const query = supabase.from('agreements').select('*, invoices(id)').order('created_at', { ascending: false });
   
   if (orgId) {
     query.eq('org_id', orgId);
@@ -58,27 +60,23 @@ export default async function AgreementsPage() {
       </div>
 
       {/* Agreements Table */}
-      <div className="overflow-x-auto overflow-y-hidden rounded-xl bg-white/[0.02] ring-1 ring-white/5">
-        <table className="w-full text-left min-w-[800px]">
-          <thead>
-            <tr className="border-b border-white/5 text-[10px] font-medium tracking-wider text-white/40">
-              <th className="px-6 py-4">CLIENT NAME</th>
-              <th className="px-6 py-4">PROJECT TYPE</th>
-              <th className="px-6 py-4">VALUE</th>
-              <th className="px-6 py-4">DATE CREATED</th>
-              <th className="px-6 py-4">STATUS</th>
-              <th className="px-6 py-4 text-right">ACTIONS</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5 text-sm">
-            {!agreements || agreements.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-white/50">
-                  No agreements found. Create one to get started!
-                </td>
+      {!agreements || agreements.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <div className="overflow-x-auto overflow-y-hidden rounded-xl bg-white/[0.02] ring-1 ring-white/5">
+          <table className="w-full text-left min-w-[800px]">
+            <thead>
+              <tr className="border-b border-white/5 text-[10px] font-medium tracking-wider text-white/40">
+                <th className="px-6 py-4">CLIENT NAME</th>
+                <th className="px-6 py-4">PROJECT TYPE</th>
+                <th className="px-6 py-4">VALUE</th>
+                <th className="px-6 py-4">DATE CREATED</th>
+                <th className="px-6 py-4">STATUS</th>
+                <th className="px-6 py-4 text-right">ACTIONS</th>
               </tr>
-            ) : (
-              agreements.map((row) => (
+            </thead>
+            <tbody className="divide-y divide-white/5 text-sm">
+              {agreements.map((row) => (
                 <tr key={row.id} className="transition-colors hover:bg-white/[0.02]">
                   <td className="px-6 py-4 font-medium text-white/90">
                     <Link href={`/sign/${row.id}`} target="_blank" className="hover:underline">
@@ -91,8 +89,10 @@ export default async function AgreementsPage() {
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium bg-white/5 ${
                       row.status === 'Signed' ? 'text-[#28c840]' : 
-                      row.status === 'Drafting' ? 'text-white/50' : 
-                      'text-[#febc2e]'
+                      row.status === 'Sent' ? 'text-blue-400' : 
+                      row.status === 'Viewed' ? 'text-orange-400' : 
+                      row.status === 'Expired' ? 'text-red-400' : 
+                      'text-gray-400'
                     }`}>
                       <span className={`h-1.5 w-1.5 rounded-full bg-current`}></span>
                       {row.status}
@@ -100,25 +100,43 @@ export default async function AgreementsPage() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-3">
+                      {row.invoices && row.invoices.length > 0 ? (
+                        <Link 
+                          href={`/invoice/${row.invoices[0].id}`} target="_blank"
+                          className="text-xs font-medium text-[#28c840] hover:text-[#28c840]/80 transition-colors"
+                          title="View Invoice"
+                        >
+                          <Receipt className="h-3.5 w-3.5" />
+                        </Link>
+                      ) : (
+                        <GenerateInvoiceModal agreementId={row.id} defaultAmount={row.advance_payment || row.total_cost || '0'} />
+                      )}
+                      <Link 
+                        href={`/sign/${row.id}`} target="_blank" 
+                        className="text-xs font-medium text-white/40 hover:text-white transition-colors"
+                      >
+                        View
+                      </Link>
                       <Link 
                         href={`/dashboard/agreements/${row.id}/edit`}
-                        className="text-xs font-medium text-white/50 hover:text-white transition-colors"
+                        className="text-xs font-medium text-white/40 hover:text-white transition-colors"
                       >
                         Edit
                       </Link>
-                      <form action={deleteAgreement.bind(null, row.id)}>
-                        <button type="submit" className="text-xs font-medium text-red-500/70 hover:text-red-500 transition-colors">
+                      <form action={deleteAgreement}>
+                        <input type="hidden" name="id" value={row.id} />
+                        <button type="submit" className="text-xs font-medium text-red-400/70 hover:text-red-400 transition-colors">
                           Delete
                         </button>
                       </form>
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

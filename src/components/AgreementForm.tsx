@@ -2,6 +2,12 @@
 
 import React, { useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, FileText } from 'lucide-react';
+import 'react-quill-new/dist/quill.snow.css';
+import dynamic from 'next/dynamic';
+import * as htmlToImage from 'html-to-image';
+import { jsPDF } from 'jspdf';
+
+const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
 
 export type AgreementData = {
   // Client Details
@@ -38,7 +44,7 @@ const defaultData: AgreementData = {
   projectName: '',
   projectType: '',
   description: "The Agency will design, develop, and deploy a custom software solution tailored to the Client's specifications. This includes full-stack development, database architecture, and frontend user interface design.",
-  deliverables: '1. Fully functional web application\n2. Secure user authentication system\n3. Integrated database architecture\n4. Mobile-responsive user interface\n5. Final source code transfer upon full payment',
+  deliverables: '<ul><li>Fully functional web application</li><li>Secure user authentication system</li><li>Integrated database architecture</li><li>Mobile-responsive user interface</li><li>Final source code transfer upon full payment</li></ul>',
   startDate: '',
   completionDate: '',
   totalCost: '',
@@ -46,8 +52,29 @@ const defaultData: AgreementData = {
   paymentSchedule: '',
   includedFeatures: '',
   ownership: 'Client retains full ownership upon final payment.',
-  providerName: 'Anand Tri',
+  providerName: 'HackArena Representative',
   providerSignature: null,
+};
+
+const predefinedTemplates = {
+  web_dev: {
+    name: 'Web Development',
+    projectType: 'Web Development',
+    description: "The Agency will design, develop, and deploy a custom software solution tailored to the Client's specifications. This includes full-stack development, database architecture, and frontend user interface design.",
+    deliverables: "<ul><li>Fully functional web application</li><li>Secure user authentication system</li><li>Integrated database architecture</li><li>Mobile-responsive user interface</li><li>Final source code transfer upon full payment</li></ul>"
+  },
+  seo: {
+    name: 'SEO Retainer',
+    projectType: 'SEO Retainer',
+    description: "The Agency will provide ongoing Search Engine Optimization services to improve the Client's organic search rankings, traffic, and overall digital footprint.",
+    deliverables: "<ul><li>Comprehensive technical SEO audit</li><li>Monthly keyword research and content strategy</li><li>On-page optimization (Meta tags, H1s, schema)</li><li>High-quality backlink acquisition</li><li>Monthly performance reports and strategy meetings</li></ul>"
+  },
+  consulting: {
+    name: 'Tech Consulting',
+    projectType: 'Consulting',
+    description: "The Agency will provide expert technical consulting services to the Client to evaluate existing infrastructure, processes, and potential growth avenues.",
+    deliverables: "<ul><li>Initial discovery and architecture review</li><li>Documentation of current systems</li><li>Strategic roadmap and recommendations report</li><li>Weekly 1-hour advisory calls</li></ul>"
+  }
 };
 
 export default function AgreementForm({
@@ -65,6 +92,7 @@ export default function AgreementForm({
   const [data, setData] = useState<AgreementData>(initialData || defaultData);
   const [isSaving, setIsSaving] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const updateData = (fields: Partial<AgreementData>) => {
     setData((prev) => ({ ...prev, ...fields }));
@@ -81,6 +109,40 @@ export default function AgreementForm({
     'Agency Sign',
     'Preview',
   ];
+
+  const handleDownloadPDF = async () => {
+    setIsGeneratingPDF(true);
+    const element = document.getElementById('pdf-preview-content');
+    if (!element) {
+      setIsGeneratingPDF(false);
+      return;
+    }
+    try {
+      const imgData = await htmlToImage.toPng(element, { pixelRatio: 2 });
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const img = new Image();
+      img.src = imgData;
+      await new Promise((resolve) => { img.onload = resolve; });
+      const pdfHeight = (img.height * pdfWidth) / img.width;
+      let position = 0;
+      let heightLeft = pdfHeight;
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+      heightLeft -= pageHeight;
+      while (heightLeft >= 0) {
+        position = heightLeft - pdfHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+        heightLeft -= pageHeight;
+      }
+      pdf.save(`Draft-Agreement-${data.clientName || 'Client'}.pdf`);
+    } catch (err: any) {
+      console.error('Failed to generate PDF', err);
+      alert('Failed to generate PDF');
+    }
+    setIsGeneratingPDF(false);
+  };
 
   return (
     <div className="flex max-w-4xl flex-col gap-8">
@@ -137,15 +199,39 @@ export default function AgreementForm({
 
         {step === 2 && (
           <div className="flex flex-col gap-5">
-            <h2 className="text-lg font-semibold text-white">Project Information</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">Project Information</h2>
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-medium text-white/50">Load Template:</label>
+                <select 
+                  className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-white outline-none focus:border-white/30"
+                  onChange={(e) => {
+                    const t = predefinedTemplates[e.target.value as keyof typeof predefinedTemplates];
+                    if (t) {
+                      updateData({
+                        projectType: t.projectType,
+                        description: t.description,
+                        deliverables: t.deliverables
+                      });
+                    }
+                  }}
+                  defaultValue=""
+                >
+                  <option value="" disabled className="bg-[#1a1a1c] text-white">Select...</option>
+                  {Object.entries(predefinedTemplates).map(([key, t]) => (
+                    <option key={key} value={key} className="bg-[#1a1a1c] text-white">{t.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-5">
               <Input label="Project Name" value={data.projectName} onChange={(e) => updateData({ projectName: e.target.value })} />
               <Input label="Project Type (e.g., Web App, SEO)" value={data.projectType} onChange={(e) => updateData({ projectType: e.target.value })} />
               <div className="col-span-2">
-                <TextArea label="Project Description" value={data.description} onChange={(e) => updateData({ description: e.target.value })} />
+                <RichEditor label="Project Description" value={data.description} onChange={(val) => updateData({ description: val })} />
               </div>
               <div className="col-span-2">
-                <TextArea label="Deliverables" value={data.deliverables} onChange={(e) => updateData({ deliverables: e.target.value })} />
+                <RichEditor label="Deliverables" value={data.deliverables} onChange={(val) => updateData({ deliverables: val })} />
               </div>
               <Input label="Start Date" type="date" value={data.startDate} onChange={(e) => updateData({ startDate: e.target.value })} />
               <Input label="Expected Completion" type="date" value={data.completionDate} onChange={(e) => updateData({ completionDate: e.target.value })} />
@@ -215,13 +301,17 @@ export default function AgreementForm({
           <div className="flex flex-col gap-5">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-white">Agreement Preview</h2>
-              <button className="flex items-center gap-2 rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-white/20">
+              <button 
+                onClick={handleDownloadPDF}
+                disabled={isGeneratingPDF}
+                className="flex items-center gap-2 rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-white/20 disabled:opacity-50"
+              >
                 <FileText className="h-3.5 w-3.5" />
-                Download PDF
+                {isGeneratingPDF ? 'Generating...' : 'Download PDF'}
               </button>
             </div>
             
-            <div className="rounded-md bg-white p-8 text-black shadow-sm min-h-[500px]">
+            <div id="pdf-preview-content" className="rounded-md bg-white p-8 text-black shadow-sm min-h-[500px]">
               <h1 className="text-2xl font-bold text-center border-b pb-4 mb-6">CLIENT AGREEMENT</h1>
               
               <div className="flex justify-between mb-8 text-sm">
@@ -242,8 +332,8 @@ export default function AgreementForm({
               <p className="mb-4 text-sm text-gray-700">This agreement outlines the terms for the <strong>{data.projectName || '[Project Name]'}</strong> ({data.projectType || 'Project Type'}).</p>
               
               <h3 className="font-bold mb-2">2. Description & Deliverables</h3>
-              <p className="mb-2 text-sm text-gray-700">{data.description || '[Project Description]'}</p>
-              <p className="mb-4 text-sm text-gray-700 whitespace-pre-wrap">{data.deliverables || '[Deliverables]'}</p>
+              <div className="mb-2 text-sm text-gray-700" dangerouslySetInnerHTML={{ __html: data.description || '[Project Description]' }} />
+              <div className="mb-4 text-sm text-gray-700" dangerouslySetInnerHTML={{ __html: data.deliverables || '[Deliverables]' }} />
 
               <h3 className="font-bold mb-2">3. Timeline</h3>
               <p className="mb-4 text-sm text-gray-700">Project commences on <strong>{data.startDate || '[Start Date]'}</strong> and is expected to conclude on <strong>{data.completionDate || '[End Date]'}</strong>.</p>
@@ -391,8 +481,18 @@ function TextArea({ label, ...props }: React.TextareaHTMLAttributes<HTMLTextArea
   );
 }
 
+function RichEditor({ label, value, onChange }: { label: string, value: string, onChange: (val: string) => void }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-medium text-white/70">{label}</label>
+      <div className="bg-white text-black rounded-md overflow-hidden min-h-[150px]">
+        <ReactQuill theme="snow" value={value} onChange={onChange} className="h-full" />
+      </div>
+    </div>
+  );
+}
+
 // Dynamically import the signature canvas since it relies on browser window
-import dynamic from 'next/dynamic';
 import { useRef } from 'react';
 const SignatureCanvas = dynamic(() => import('react-signature-canvas'), { ssr: false });
 const SignatureCanvasAny = SignatureCanvas as any;

@@ -1,13 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Home, FileText, Settings, Plus, Menu, X, Users } from 'lucide-react';
+import { Home, FileText, Settings, Plus, Menu, X, Users, Receipt } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { UserButton, Show, SignInButton, ClerkLoading, ClerkLoaded, OrganizationSwitcher } from '@clerk/nextjs';
 
 export default function DashboardSidebar({ profile, userName, roleName }: { profile: any, userName: string, roleName: string }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   return (
     <>
@@ -46,20 +53,24 @@ export default function DashboardSidebar({ profile, userName, roleName }: { prof
 
           {/* Workspace Switcher */}
           <div className="p-4 border-b border-white/5">
-            <OrganizationSwitcher 
-              appearance={{
-                variables: {
-                  colorText: "white"
-                },
-                elements: {
-                  organizationSwitcherTrigger: "w-full flex justify-between items-center !text-white hover:!text-white/80 transition-colors bg-white/5 rounded-md px-3 py-2 border border-white/10",
-                  organizationPreviewTextContainer: "truncate text-sm flex-1 text-left !text-white",
-                  organizationPreviewMainIdentifier: "!text-white font-medium",
-                  organizationSwitcherTriggerIcon: "!text-white/50 shrink-0 ml-2",
-                }
-              }}
-              hidePersonal={false}
-            />
+            {isMounted ? (
+              <OrganizationSwitcher 
+                appearance={{
+                  variables: {
+                    colorText: "white"
+                  },
+                  elements: {
+                    organizationSwitcherTrigger: "w-full flex justify-between items-center !text-white hover:!text-white/80 transition-colors bg-white/5 rounded-md px-3 py-2 border border-white/10",
+                    organizationPreviewTextContainer: "truncate text-sm flex-1 text-left !text-white",
+                    organizationPreviewMainIdentifier: "!text-white font-medium",
+                    organizationSwitcherTriggerIcon: "!text-white/50 shrink-0 ml-2",
+                  }
+                }}
+                hidePersonal={false}
+              />
+            ) : (
+              <div className="h-10 w-full rounded-md bg-white/5 animate-pulse border border-white/10" />
+            )}
           </div>
 
           {/* Navigation */}
@@ -67,7 +78,7 @@ export default function DashboardSidebar({ profile, userName, roleName }: { prof
             <Link
               href="/dashboard"
               onClick={() => setIsOpen(false)}
-              className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white"
+              className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${pathname === '/dashboard' ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}
             >
               <Home className="h-4 w-4" />
               Overview
@@ -75,10 +86,18 @@ export default function DashboardSidebar({ profile, userName, roleName }: { prof
             <Link
               href="/dashboard/agreements"
               onClick={() => setIsOpen(false)}
-              className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white"
+              className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${pathname.includes('/dashboard/agreements') ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}
             >
               <FileText className="h-4 w-4" />
               Agreements
+            </Link>
+            <Link
+              href="/dashboard/invoices"
+              onClick={() => setIsOpen(false)}
+              className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${pathname.includes('/dashboard/invoices') ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}
+            >
+              <Receipt className="h-4 w-4" />
+              Invoices
             </Link>
             <Link
               href="/dashboard/leads"

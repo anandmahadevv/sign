@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { ArrowUp, Sparkles } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import DashboardMockup from '@/components/DashboardMockup';
@@ -29,8 +30,8 @@ export default function Home() {
       {/* Hero Content */}
       <div className="relative z-20 flex flex-col items-center px-5 text-center sm:px-8">
         <h1 className="text-[40px] font-normal leading-[1.05] tracking-tight text-gray-900 min-[400px]:text-[44px] sm:text-6xl lg:text-7xl xl:text-[80px]">
-          <span className="block animate-fade-up">Create agreements.</span>
-          <span className="block animate-fade-up [animation-delay:100ms]">Effortlessly.</span>
+          <span className="block animate-fade-up">Professional Agreements.</span>
+          <span className="block animate-fade-up [animation-delay:100ms]">Signed in Minutes.</span>
         </h1>
 
         {/* Search / Email Bar */}
@@ -61,13 +62,16 @@ export default function Home() {
 
         {/* CTA Buttons */}
         <div className="mt-4 flex flex-wrap items-center justify-center gap-3 animate-fade-up [animation-delay:460ms] sm:mt-5">
-          <button className="rounded-full bg-gray-900 px-6 py-2.5 text-sm font-medium text-white transition-all hover:bg-gray-800 hover:shadow-lg">
-            Try It Free
-          </button>
+          <Link href="/dashboard" className="rounded-full bg-gray-900 px-6 py-2.5 text-sm font-medium text-white transition-all hover:bg-gray-800 hover:shadow-lg">
+            Send First Agreement
+          </Link>
           <button className="rounded-full px-6 py-2.5 text-sm font-medium text-gray-700 ring-1 ring-gray-300 transition-colors hover:bg-gray-100">
             Talk to sales
           </button>
         </div>
+        <p className="mt-4 text-xs font-medium text-gray-500 animate-fade-up [animation-delay:500ms]">
+          Used by agencies, freelancers, and software companies.
+        </p>
       </div>
 
       {/* Spacer between Content and Dashboard */}
