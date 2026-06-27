@@ -4,8 +4,8 @@ import { dark } from '@clerk/themes'
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Sign by HackArena",
-  description: "Generate and sign client agreements effortlessly.",
+  title: "Free Freelance Contract & Invoice Generator | Sign by HackArena",
+  description: "Stop paying just to send a contract. Generate client agreements, collect e-signatures, and send invoices for free. The ultimate Bonsai alternative.",
 };
 
 const clerkAppearance: any = {

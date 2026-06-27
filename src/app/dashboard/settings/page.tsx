@@ -53,7 +53,7 @@ export default async function SettingsPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-white/70">Support Email</label>
               <input
-                defaultValue="hello@hackarena.com"
+                defaultValue="connect@hackarena.dev"
                 className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-white/30 focus:bg-white/10"
               />
             </div>

@@ -73,7 +73,7 @@ export default function DashboardMockup() {
           <div className="flex items-center justify-center">
             <div className="flex items-center gap-2 rounded-md bg-[#1a1a1c] px-6 py-1 text-[10px] text-white/60">
               <Monitor className="h-3 w-3" />
-              hackarena.ai
+              sign.hackarena.dev
             </div>
           </div>
           <div className="flex items-center gap-3">

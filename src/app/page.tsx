@@ -29,9 +29,9 @@ export default function Home() {
 
       {/* Hero Content */}
       <div className="relative z-20 flex flex-col items-center px-5 text-center sm:px-8">
-        <h1 className="text-[40px] font-normal leading-[1.05] tracking-tight text-gray-900 min-[400px]:text-[44px] sm:text-6xl lg:text-7xl xl:text-[80px]">
-          <span className="block animate-fade-up">Professional Agreements.</span>
-          <span className="block animate-fade-up [animation-delay:100ms]">Signed in Minutes.</span>
+        <h1 className="text-[40px] font-normal leading-[1.05] tracking-tight text-gray-900 min-[400px]:text-[44px] sm:text-5xl lg:text-6xl xl:text-[70px]">
+          <span className="block animate-fade-up">Stop Paying Just to</span>
+          <span className="block animate-fade-up [animation-delay:100ms]">Send a Contract.</span>
         </h1>
 
         {/* Search / Email Bar */}
@@ -55,15 +55,15 @@ export default function Home() {
         </form>
 
         {/* Description */}
-        <p className="mt-4 max-w-md animate-fade-up text-sm leading-relaxed text-gray-600 [animation-delay:340ms] sm:mt-5 sm:text-base lg:text-lg">
-          Generate legally structured project agreements{' '}
-          <br className="hidden sm:block" />— and get them signed with <Sparkles className="inline h-4 w-4 -mt-1" /> Sign by HackArena
+        <p className="mt-4 max-w-xl animate-fade-up text-sm leading-relaxed text-gray-600 [animation-delay:340ms] sm:mt-5 sm:text-base lg:text-lg">
+          The 100% free Agency OS for freelancers and dev shops.{' '}
+          <br className="hidden sm:block" />Generate agreements, collect signatures, and send invoices in 3 clicks.
         </p>
 
         {/* CTA Buttons */}
         <div className="mt-4 flex flex-wrap items-center justify-center gap-3 animate-fade-up [animation-delay:460ms] sm:mt-5">
           <Link href="/dashboard" className="rounded-full bg-gray-900 px-6 py-2.5 text-sm font-medium text-white transition-all hover:bg-gray-800 hover:shadow-lg">
-            Send First Agreement
+            Start for Free
           </Link>
           <button className="rounded-full px-6 py-2.5 text-sm font-medium text-gray-700 ring-1 ring-gray-300 transition-colors hover:bg-gray-100">
             Talk to sales
