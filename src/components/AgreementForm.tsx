@@ -1,60 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, ArrowRight, Check, FileText } from 'lucide-react';
 import 'react-quill-new/dist/quill.snow.css';
 import dynamic from 'next/dynamic';
-import * as htmlToImage from 'html-to-image';
-import { jsPDF } from 'jspdf';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { AgreementSchema, AgreementDataSchema } from '@/lib/schemas';
+import { AgreementPDF } from './AgreementPDF';
+import { PDFDownloadLink } from '@react-pdf/renderer';
 
 const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
-
-export type AgreementData = {
-  // Client Details
-  clientName: string;
-  companyName: string;
-  email: string;
-  phone: string;
-  address: string;
-  // Project Details
-  projectName: string;
-  projectType: string;
-  description: string;
-  deliverables: string;
-  startDate: string;
-  completionDate: string;
-  // Pricing
-  totalCost: string;
-  advancePayment: string;
-  paymentSchedule: string;
-  // Scope & Legal
-  includedFeatures: string;
-  ownership: string;
-  // Agency Signature
-  providerName: string;
-  providerSignature: string | null;
-};
-
-const defaultData: AgreementData = {
-  clientName: '',
-  companyName: '',
-  email: '',
-  phone: '',
-  address: '',
-  projectName: '',
-  projectType: '',
-  description: "The Agency will design, develop, and deploy a custom software solution tailored to the Client's specifications. This includes full-stack development, database architecture, and frontend user interface design.",
-  deliverables: '<ul><li>Fully functional web application</li><li>Secure user authentication system</li><li>Integrated database architecture</li><li>Mobile-responsive user interface</li><li>Final source code transfer upon full payment</li></ul>',
-  startDate: '',
-  completionDate: '',
-  totalCost: '',
-  advancePayment: '',
-  paymentSchedule: '',
-  includedFeatures: '',
-  ownership: 'Client retains full ownership upon final payment.',
-  providerName: 'HackArena Representative',
-  providerSignature: null,
-};
+const SignatureCanvas = dynamic(() => import('react-signature-canvas'), { ssr: false });
+const SignatureCanvasAny = SignatureCanvas as any;
 
 const predefinedTemplates = {
   web_dev: {
@@ -77,29 +35,48 @@ const predefinedTemplates = {
   }
 };
 
+const defaultData: Partial<AgreementDataSchema> = {
+  description: predefinedTemplates.web_dev.description,
+  deliverables: predefinedTemplates.web_dev.deliverables,
+  ownership: 'Client retains full ownership upon final payment.',
+  providerName: 'HackArena Representative',
+  providerSignature: null,
+};
+
 export default function AgreementForm({
   initialData,
   onSave,
   title,
   subtitle,
 }: {
-  initialData?: AgreementData;
-  onSave: (data: AgreementData) => Promise<string | void>;
+  initialData?: any;
+  onSave: (data: AgreementDataSchema) => Promise<string | void>;
   title: string;
   subtitle: string;
 }) {
   const [step, setStep] = useState(1);
-  const [data, setData] = useState<AgreementData>(initialData || defaultData);
   const [isSaving, setIsSaving] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
-  const updateData = (fields: Partial<AgreementData>) => {
-    setData((prev) => ({ ...prev, ...fields }));
-  };
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
-  const nextStep = () => setStep((s) => Math.min(s + 1, 6));
-  const prevStep = () => setStep((s) => Math.max(s - 1, 1));
+  const {
+    register,
+    handleSubmit,
+    control,
+    watch,
+    trigger,
+    setValue,
+    formState: { errors },
+  } = useForm<AgreementDataSchema>({
+    resolver: zodResolver(AgreementSchema),
+    defaultValues: initialData || defaultData,
+  });
+
+  const data = watch();
 
   const steps = [
     'Client',
@@ -110,38 +87,39 @@ export default function AgreementForm({
     'Preview',
   ];
 
-  const handleDownloadPDF = async () => {
-    setIsGeneratingPDF(true);
-    const element = document.getElementById('pdf-preview-content');
-    if (!element) {
-      setIsGeneratingPDF(false);
-      return;
+  const stepFields: Record<number, (keyof AgreementDataSchema)[]> = {
+    1: ['clientName', 'companyName', 'email', 'phone', 'address'],
+    2: ['projectName', 'projectType', 'description', 'deliverables', 'startDate', 'completionDate'],
+    3: ['totalCost', 'advancePayment', 'paymentSchedule'],
+    4: ['includedFeatures', 'ownership'],
+    5: ['providerName', 'providerSignature'],
+  };
+
+  const nextStep = async () => {
+    const fields = stepFields[step];
+    if (fields) {
+      const isValid = await trigger(fields);
+      if (!isValid) return;
     }
+    setStep((s) => Math.min(s + 1, 6));
+  };
+
+  const prevStep = () => setStep((s) => Math.max(s - 1, 1));
+
+  const onSubmit = async (formData: AgreementDataSchema) => {
+    setIsSaving(true);
     try {
-      const imgData = await htmlToImage.toPng(element, { pixelRatio: 2 });
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const img = new Image();
-      img.src = imgData;
-      await new Promise((resolve) => { img.onload = resolve; });
-      const pdfHeight = (img.height * pdfWidth) / img.width;
-      let position = 0;
-      let heightLeft = pdfHeight;
-      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-      heightLeft -= pageHeight;
-      while (heightLeft >= 0) {
-        position = heightLeft - pdfHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-        heightLeft -= pageHeight;
+      const result = await onSave(formData);
+      if (result && typeof result === 'string') {
+        setSavedId(result);
+        setStep(7);
       }
-      pdf.save(`Draft-Agreement-${data.clientName || 'Client'}.pdf`);
-    } catch (err: any) {
-      console.error('Failed to generate PDF', err);
-      alert('Failed to generate PDF');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to save agreement.');
+    } finally {
+      setIsSaving(false);
     }
-    setIsGeneratingPDF(false);
   };
 
   return (
@@ -186,12 +164,23 @@ export default function AgreementForm({
           <div className="flex flex-col gap-5">
             <h2 className="text-lg font-semibold text-white">Client Information</h2>
             <div className="grid grid-cols-2 gap-5">
-              <Input label="Client Name" value={data.clientName} onChange={(e) => updateData({ clientName: e.target.value })} />
-              <Input label="Company Name" value={data.companyName} onChange={(e) => updateData({ companyName: e.target.value })} />
-              <Input label="Email Address" type="email" value={data.email} onChange={(e) => updateData({ email: e.target.value })} />
-              <Input label="Phone Number" value={data.phone} onChange={(e) => updateData({ phone: e.target.value })} />
+              <Input label="Client Name" maxLength={100} error={errors.clientName?.message} {...register('clientName')} />
+              <Input label="Company Name" maxLength={100} error={errors.companyName?.message} {...register('companyName')} />
+              <Input label="Email Address" type="email" maxLength={150} error={errors.email?.message} {...register('email')} />
+              <Input 
+                label="Phone Number" 
+                maxLength={25} 
+                error={errors.phone?.message} 
+                {...register('phone')} 
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (/^[\+0-9\s\-()]*$/.test(val)) {
+                    setValue('phone', val);
+                  }
+                }} 
+              />
               <div className="col-span-2">
-                <Input label="Address" value={data.address} onChange={(e) => updateData({ address: e.target.value })} />
+                <Input label="Address" maxLength={250} error={errors.address?.message} {...register('address')} />
               </div>
             </div>
           </div>
@@ -208,11 +197,9 @@ export default function AgreementForm({
                   onChange={(e) => {
                     const t = predefinedTemplates[e.target.value as keyof typeof predefinedTemplates];
                     if (t) {
-                      updateData({
-                        projectType: t.projectType,
-                        description: t.description,
-                        deliverables: t.deliverables
-                      });
+                      setValue('projectType', t.projectType);
+                      setValue('description', t.description);
+                      setValue('deliverables', t.deliverables);
                     }
                   }}
                   defaultValue=""
@@ -225,16 +212,28 @@ export default function AgreementForm({
               </div>
             </div>
             <div className="grid grid-cols-2 gap-5">
-              <Input label="Project Name" value={data.projectName} onChange={(e) => updateData({ projectName: e.target.value })} />
-              <Input label="Project Type (e.g., Web App, SEO)" value={data.projectType} onChange={(e) => updateData({ projectType: e.target.value })} />
+              <Input label="Project Name" maxLength={100} error={errors.projectName?.message} {...register('projectName')} />
+              <Input label="Project Type (e.g., Web App, SEO)" maxLength={100} error={errors.projectType?.message} {...register('projectType')} />
               <div className="col-span-2">
-                <RichEditor label="Project Description" value={data.description} onChange={(val) => updateData({ description: val })} />
+                <Controller
+                  name="description"
+                  control={control}
+                  render={({ field }) => (
+                    <RichEditor label="Project Description" value={field.value} onChange={field.onChange} error={errors.description?.message} />
+                  )}
+                />
               </div>
               <div className="col-span-2">
-                <RichEditor label="Deliverables" value={data.deliverables} onChange={(val) => updateData({ deliverables: val })} />
+                <Controller
+                  name="deliverables"
+                  control={control}
+                  render={({ field }) => (
+                    <RichEditor label="Deliverables" value={field.value} onChange={field.onChange} error={errors.deliverables?.message} />
+                  )}
+                />
               </div>
-              <Input label="Start Date" type="date" value={data.startDate} onChange={(e) => updateData({ startDate: e.target.value })} />
-              <Input label="Expected Completion" type="date" value={data.completionDate} onChange={(e) => updateData({ completionDate: e.target.value })} />
+              <Input label="Start Date" type="date" error={errors.startDate?.message} {...register('startDate')} />
+              <Input label="Expected Completion" type="date" error={errors.completionDate?.message} {...register('completionDate')} />
             </div>
           </div>
         )}
@@ -243,10 +242,10 @@ export default function AgreementForm({
           <div className="flex flex-col gap-5">
             <h2 className="text-lg font-semibold text-white">Pricing & Payments</h2>
             <div className="grid grid-cols-2 gap-5">
-              <Input label="Total Cost ($)" type="number" value={data.totalCost} onChange={(e) => updateData({ totalCost: e.target.value })} />
-              <Input label="Advance Payment ($)" type="number" value={data.advancePayment} onChange={(e) => updateData({ advancePayment: e.target.value })} />
+              <Input label="Total Cost ($)" type="number" min="0" step="0.01" error={errors.totalCost?.message} {...register('totalCost')} />
+              <Input label="Advance Payment ($)" type="number" min="0" step="0.01" error={errors.advancePayment?.message} {...register('advancePayment')} />
               <div className="col-span-2">
-                <Input label="Payment Schedule (e.g., 50% upfront, 50% upon completion)" value={data.paymentSchedule} onChange={(e) => updateData({ paymentSchedule: e.target.value })} />
+                <Input label="Payment Schedule (e.g., 50% upfront, 50% upon completion)" maxLength={250} error={errors.paymentSchedule?.message} {...register('paymentSchedule')} />
               </div>
             </div>
           </div>
@@ -256,8 +255,8 @@ export default function AgreementForm({
           <div className="flex flex-col gap-5">
             <h2 className="text-lg font-semibold text-white">Scope & Legal Terms</h2>
             <div className="grid grid-cols-1 gap-5">
-              <TextArea label="Included Features / Scope" value={data.includedFeatures} onChange={(e) => updateData({ includedFeatures: e.target.value })} />
-              <TextArea label="Code Ownership Terms" value={data.ownership} onChange={(e) => updateData({ ownership: e.target.value })} />
+              <TextArea label="Included Features / Scope" error={errors.includedFeatures?.message} {...register('includedFeatures')} />
+              <TextArea label="Code Ownership Terms" error={errors.ownership?.message} {...register('ownership')} />
             </div>
           </div>
         )}
@@ -267,14 +266,14 @@ export default function AgreementForm({
             <h2 className="text-lg font-semibold text-white">Agency Authorization</h2>
             <p className="text-sm text-white/50">Provide your name and signature to authorize this contract before sending.</p>
             <div className="grid grid-cols-1 gap-5 mt-2">
-              <Input label="Your Name (Agency Rep)" value={data.providerName} onChange={(e) => updateData({ providerName: e.target.value })} />
+              <Input label="Your Name (Agency Rep)" maxLength={100} error={errors.providerName?.message} {...register('providerName')} />
               
               <div className="flex flex-col gap-1.5 mt-4">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-medium text-white/70">Your Signature</label>
                   {data.providerSignature && (
                     <button 
-                      onClick={() => updateData({ providerSignature: null })}
+                      onClick={() => setValue('providerSignature', null)}
                       className="text-xs font-medium text-red-400 hover:text-red-300 transition-colors"
                     >
                       Clear Signature
@@ -282,16 +281,24 @@ export default function AgreementForm({
                   )}
                 </div>
                 
-                {data.providerSignature ? (
-                  <div className="rounded-xl border border-white/10 bg-white p-4 h-48 flex items-center justify-center">
-                    <img src={data.providerSignature} alt="Agency Signature" className="max-h-full max-w-full object-contain" />
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-white/10 bg-white overflow-hidden relative h-48 w-full cursor-crosshair">
-                    {/* We can use react-signature-canvas here, dynamically loaded to avoid SSR issues */}
-                    <SignaturePadWrapper onSave={(sig) => updateData({ providerSignature: sig })} />
-                  </div>
-                )}
+                <Controller
+                  name="providerSignature"
+                  control={control}
+                  render={({ field }) => (
+                    <>
+                      {field.value ? (
+                        <div className={`rounded-xl border ${errors.providerSignature ? 'border-red-500' : 'border-white/10'} bg-white p-4 h-48 flex items-center justify-center`}>
+                          <img src={field.value} alt="Agency Signature" className="max-h-full max-w-full object-contain" />
+                        </div>
+                      ) : (
+                        <div className={`rounded-xl border ${errors.providerSignature ? 'border-red-500' : 'border-white/10'} bg-white overflow-hidden relative h-48 w-full cursor-crosshair`}>
+                          <SignaturePadWrapper onSave={field.onChange} />
+                        </div>
+                      )}
+                      {errors.providerSignature && <p className="text-xs text-red-500">{errors.providerSignature.message}</p>}
+                    </>
+                  )}
+                />
               </div>
             </div>
           </div>
@@ -301,14 +308,20 @@ export default function AgreementForm({
           <div className="flex flex-col gap-5">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-white">Agreement Preview</h2>
-              <button 
-                onClick={handleDownloadPDF}
-                disabled={isGeneratingPDF}
-                className="flex items-center gap-2 rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-white/20 disabled:opacity-50"
-              >
-                <FileText className="h-3.5 w-3.5" />
-                {isGeneratingPDF ? 'Generating...' : 'Download PDF'}
-              </button>
+              {isMounted && (
+                <PDFDownloadLink
+                  document={<AgreementPDF data={data} />}
+                  fileName={`Draft-Agreement-${data.clientName || 'Client'}.pdf`}
+                  className="flex items-center gap-2 rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-white/20"
+                >
+                  {({ loading }) => (
+                    <>
+                      <FileText className="h-3.5 w-3.5" />
+                      {loading ? 'Generating...' : 'Download PDF'}
+                    </>
+                  )}
+                </PDFDownloadLink>
+              )}
             </div>
             
             <div id="pdf-preview-content" className="rounded-md bg-white p-8 text-black shadow-sm min-h-[500px]">
@@ -430,18 +443,7 @@ export default function AgreementForm({
             </button>
           ) : (
             <button
-              onClick={async () => {
-                setIsSaving(true);
-                try {
-                  const result = await onSave(data);
-                  if (result && typeof result === 'string') {
-                    setSavedId(result);
-                    setStep(7);
-                  }
-                } finally {
-                  setIsSaving(false);
-                }
-              }}
+              onClick={handleSubmit(onSubmit)}
               disabled={isSaving}
               className="flex items-center gap-2 rounded-md bg-[#28c840] px-5 py-2.5 text-sm font-bold text-black transition-colors hover:bg-[#28c840]/90 shadow-[0_0_20px_rgba(40,200,64,0.3)] disabled:opacity-50"
             >
@@ -456,46 +458,48 @@ export default function AgreementForm({
 }
 
 // Reusable UI Components for the form
-function Input({ label, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) {
+const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement> & { label: string, error?: string }>(({ label, error, ...props }, ref) => {
   return (
     <div className="flex flex-col gap-1.5">
       <label className="text-xs font-medium text-white/70">{label}</label>
       <input
-        className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/30 outline-none transition-colors focus:border-white/30 focus:bg-white/10"
+        ref={ref}
+        className={`rounded-md border ${error ? 'border-red-500' : 'border-white/10'} bg-white/5 px-3 py-2 text-sm text-white placeholder-white/30 outline-none transition-colors focus:border-white/30 focus:bg-white/10`}
         {...props}
       />
+      {error && <span className="text-xs text-red-500">{error}</span>}
     </div>
   );
-}
+});
+Input.displayName = 'Input';
 
-function TextArea({ label, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }) {
+const TextArea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string, error?: string }>(({ label, error, ...props }, ref) => {
   return (
     <div className="flex flex-col gap-1.5">
       <label className="text-xs font-medium text-white/70">{label}</label>
       <textarea
+        ref={ref}
         rows={4}
-        className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/30 outline-none transition-colors focus:border-white/30 focus:bg-white/10 resize-none"
+        className={`rounded-md border ${error ? 'border-red-500' : 'border-white/10'} bg-white/5 px-3 py-2 text-sm text-white placeholder-white/30 outline-none transition-colors focus:border-white/30 focus:bg-white/10 resize-none`}
         {...props}
       />
+      {error && <span className="text-xs text-red-500">{error}</span>}
     </div>
   );
-}
+});
+TextArea.displayName = 'TextArea';
 
-function RichEditor({ label, value, onChange }: { label: string, value: string, onChange: (val: string) => void }) {
+function RichEditor({ label, value, onChange, error }: { label: string, value: string, onChange: (val: string) => void, error?: string }) {
   return (
     <div className="flex flex-col gap-1.5">
       <label className="text-xs font-medium text-white/70">{label}</label>
-      <div className="bg-white text-black rounded-md overflow-hidden min-h-[150px]">
-        <ReactQuill theme="snow" value={value} onChange={onChange} className="h-full" />
+      <div className={`bg-white text-black rounded-md overflow-hidden min-h-[150px] border ${error ? 'border-red-500' : 'border-transparent'}`}>
+        <ReactQuill theme="snow" value={value || ''} onChange={onChange} className="h-full" />
       </div>
+      {error && <span className="text-xs text-red-500">{error}</span>}
     </div>
   );
 }
-
-// Dynamically import the signature canvas since it relies on browser window
-import { useRef } from 'react';
-const SignatureCanvas = dynamic(() => import('react-signature-canvas'), { ssr: false });
-const SignatureCanvasAny = SignatureCanvas as any;
 
 function SignaturePadWrapper({ onSave }: { onSave: (sig: string) => void }) {
   const sigCanvas = useRef<any>(null);

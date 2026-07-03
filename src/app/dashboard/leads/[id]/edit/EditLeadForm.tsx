@@ -4,15 +4,40 @@ import React, { useState } from 'react';
 import { updateLead } from '@/app/actions';
 import { Save, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { LeadSchema, LeadData } from '@/lib/schemas';
 
 export default function EditLeadForm({ lead }: { lead: any }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LeadData>({
+    resolver: zodResolver(LeadSchema),
+    defaultValues: {
+      shopName: lead.shop_name || '',
+      clientName: lead.client_name || '',
+      phone: lead.phone || '',
+      interestLevel: lead.interest_level || 'High',
+      quotedPrice: lead.quoted_price || '',
+      notes: lead.notes || '',
+    },
+  });
+
+  const onSubmit = async (data: LeadData) => {
     setLoading(true);
-    const formData = new FormData(e.currentTarget);
+    const formData = new FormData();
+    formData.append('shopName', data.shopName);
+    formData.append('clientName', data.clientName);
+    if (data.phone) formData.append('phone', data.phone);
+    formData.append('interestLevel', data.interestLevel);
+    if (data.quotedPrice) formData.append('quotedPrice', data.quotedPrice.toString());
+    if (data.notes) formData.append('notes', data.notes);
+
     try {
       await updateLead(lead.id, formData);
       router.push(`/dashboard/leads/${lead.id}`);
@@ -23,7 +48,7 @@ export default function EditLeadForm({ lead }: { lead: any }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-6">
       <div className="space-y-4">
         <div>
           <label htmlFor="shopName" className="block text-sm font-medium text-white mb-1">
@@ -31,12 +56,12 @@ export default function EditLeadForm({ lead }: { lead: any }) {
           </label>
           <input
             type="text"
-            name="shopName"
             id="shopName"
-            required
-            defaultValue={lead.shop_name}
-            className="w-full rounded-md border border-white/10 bg-black/50 px-4 py-3 text-white placeholder-white/30 focus:border-[#28c840] focus:ring-1 focus:ring-[#28c840] outline-none transition-all"
+            maxLength={100}
+            className={`w-full rounded-md border ${errors.shopName ? 'border-red-500' : 'border-white/10'} bg-black/50 px-4 py-3 text-white placeholder-white/30 focus:border-[#28c840] focus:ring-1 focus:ring-[#28c840] outline-none transition-all`}
+            {...register('shopName')}
           />
+          {errors.shopName && <p className="mt-1 text-xs text-red-500">{errors.shopName.message}</p>}
         </div>
 
         <div>
@@ -45,12 +70,12 @@ export default function EditLeadForm({ lead }: { lead: any }) {
           </label>
           <input
             type="text"
-            name="clientName"
             id="clientName"
-            required
-            defaultValue={lead.client_name}
-            className="w-full rounded-md border border-white/10 bg-black/50 px-4 py-3 text-white placeholder-white/30 focus:border-[#28c840] focus:ring-1 focus:ring-[#28c840] outline-none transition-all"
+            maxLength={100}
+            className={`w-full rounded-md border ${errors.clientName ? 'border-red-500' : 'border-white/10'} bg-black/50 px-4 py-3 text-white placeholder-white/30 focus:border-[#28c840] focus:ring-1 focus:ring-[#28c840] outline-none transition-all`}
+            {...register('clientName')}
           />
+          {errors.clientName && <p className="mt-1 text-xs text-red-500">{errors.clientName.message}</p>}
         </div>
 
         <div>
@@ -59,11 +84,12 @@ export default function EditLeadForm({ lead }: { lead: any }) {
           </label>
           <input
             type="tel"
-            name="phone"
             id="phone"
-            defaultValue={lead.phone || ''}
-            className="w-full rounded-md border border-white/10 bg-black/50 px-4 py-3 text-white placeholder-white/30 focus:border-[#28c840] focus:ring-1 focus:ring-[#28c840] outline-none transition-all"
+            maxLength={25}
+            className={`w-full rounded-md border ${errors.phone ? 'border-red-500' : 'border-white/10'} bg-black/50 px-4 py-3 text-white placeholder-white/30 focus:border-[#28c840] focus:ring-1 focus:ring-[#28c840] outline-none transition-all`}
+            {...register('phone')}
           />
+          {errors.phone && <p className="mt-1 text-xs text-red-500">{errors.phone.message}</p>}
         </div>
 
         <div>
@@ -71,17 +97,16 @@ export default function EditLeadForm({ lead }: { lead: any }) {
             Interest Level <span className="text-red-500">*</span>
           </label>
           <select
-            name="interestLevel"
             id="interestLevel"
-            required
-            defaultValue={lead.interest_level}
-            className="w-full rounded-md border border-white/10 bg-[#1a1a1c] px-4 py-3 text-white outline-none focus:border-[#28c840] focus:ring-1 focus:ring-[#28c840] transition-all"
+            className={`w-full rounded-md border ${errors.interestLevel ? 'border-red-500' : 'border-white/10'} bg-[#1a1a1c] px-4 py-3 text-white outline-none focus:border-[#28c840] focus:ring-1 focus:ring-[#28c840] transition-all`}
+            {...register('interestLevel')}
           >
             <option value="High">High Interest 🔥</option>
             <option value="Medium">Medium Interest 🤝</option>
             <option value="Low">Low Interest 🧊</option>
             <option value="Not Interested">Not Interested 🚫</option>
           </select>
+          {errors.interestLevel && <p className="mt-1 text-xs text-red-500">{errors.interestLevel.message}</p>}
         </div>
 
         <div>
@@ -94,14 +119,14 @@ export default function EditLeadForm({ lead }: { lead: any }) {
             </div>
             <input
               type="number"
-              name="quotedPrice"
               id="quotedPrice"
               min="0"
               step="0.01"
-              defaultValue={lead.quoted_price || ''}
-              className="w-full rounded-md border border-white/10 bg-black/50 pl-8 pr-4 py-3 text-white placeholder-white/30 focus:border-[#28c840] focus:ring-1 focus:ring-[#28c840] outline-none transition-all"
+              className={`w-full rounded-md border ${errors.quotedPrice ? 'border-red-500' : 'border-white/10'} bg-black/50 pl-8 pr-4 py-3 text-white placeholder-white/30 focus:border-[#28c840] focus:ring-1 focus:ring-[#28c840] outline-none transition-all`}
+              {...register('quotedPrice')}
             />
           </div>
+          {errors.quotedPrice && <p className="mt-1 text-xs text-red-500">{errors.quotedPrice.message}</p>}
         </div>
 
         <div>
@@ -109,12 +134,13 @@ export default function EditLeadForm({ lead }: { lead: any }) {
             Field Notes (Optional)
           </label>
           <textarea
-            name="notes"
             id="notes"
             rows={4}
-            defaultValue={lead.notes || ''}
-            className="w-full rounded-md border border-white/10 bg-black/50 px-4 py-3 text-white placeholder-white/30 focus:border-[#28c840] focus:ring-1 focus:ring-[#28c840] outline-none transition-all resize-none"
+            maxLength={1000}
+            className={`w-full rounded-md border ${errors.notes ? 'border-red-500' : 'border-white/10'} bg-black/50 px-4 py-3 text-white placeholder-white/30 focus:border-[#28c840] focus:ring-1 focus:ring-[#28c840] outline-none transition-all resize-none`}
+            {...register('notes')}
           />
+          {errors.notes && <p className="mt-1 text-xs text-red-500">{errors.notes.message}</p>}
         </div>
       </div>
 

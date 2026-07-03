@@ -5,15 +5,35 @@ import { createLead } from '@/app/actions';
 import Link from 'next/link';
 import { ArrowLeft, Save, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { LeadSchema, LeadData } from '@/lib/schemas';
 
 export default function CreateLeadPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LeadData>({
+    resolver: zodResolver(LeadSchema),
+    defaultValues: {
+      interestLevel: 'High',
+    }
+  });
+
+  const onSubmit = async (data: LeadData) => {
     setLoading(true);
-    const formData = new FormData(e.currentTarget);
+    const formData = new FormData();
+    formData.append('shopName', data.shopName);
+    formData.append('clientName', data.clientName);
+    if (data.phone) formData.append('phone', data.phone);
+    formData.append('interestLevel', data.interestLevel);
+    if (data.quotedPrice) formData.append('quotedPrice', data.quotedPrice.toString());
+    if (data.notes) formData.append('notes', data.notes);
+
     try {
       await createLead(formData);
       router.push('/dashboard/leads');
@@ -38,7 +58,7 @@ export default function CreateLeadPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-6">
         
         <div className="space-y-4">
           <div>
@@ -47,12 +67,13 @@ export default function CreateLeadPage() {
             </label>
             <input
               type="text"
-              name="shopName"
               id="shopName"
-              required
-              className="w-full rounded-md border border-white/10 bg-black/50 px-4 py-3 text-white placeholder-white/30 focus:border-[#28c840] focus:ring-1 focus:ring-[#28c840] outline-none transition-all"
+              maxLength={100}
+              className={`w-full rounded-md border ${errors.shopName ? 'border-red-500' : 'border-white/10'} bg-black/50 px-4 py-3 text-white placeholder-white/30 focus:border-[#28c840] focus:ring-1 focus:ring-[#28c840] outline-none transition-all`}
               placeholder="e.g., Central Cafe"
+              {...register('shopName')}
             />
+            {errors.shopName && <p className="mt-1 text-xs text-red-500">{errors.shopName.message}</p>}
           </div>
 
           <div>
@@ -61,12 +82,13 @@ export default function CreateLeadPage() {
             </label>
             <input
               type="text"
-              name="clientName"
               id="clientName"
-              required
-              className="w-full rounded-md border border-white/10 bg-black/50 px-4 py-3 text-white placeholder-white/30 focus:border-[#28c840] focus:ring-1 focus:ring-[#28c840] outline-none transition-all"
+              maxLength={100}
+              className={`w-full rounded-md border ${errors.clientName ? 'border-red-500' : 'border-white/10'} bg-black/50 px-4 py-3 text-white placeholder-white/30 focus:border-[#28c840] focus:ring-1 focus:ring-[#28c840] outline-none transition-all`}
               placeholder="e.g., John Doe"
+              {...register('clientName')}
             />
+            {errors.clientName && <p className="mt-1 text-xs text-red-500">{errors.clientName.message}</p>}
           </div>
 
           <div>
@@ -75,11 +97,13 @@ export default function CreateLeadPage() {
             </label>
             <input
               type="tel"
-              name="phone"
               id="phone"
-              className="w-full rounded-md border border-white/10 bg-black/50 px-4 py-3 text-white placeholder-white/30 focus:border-[#28c840] focus:ring-1 focus:ring-[#28c840] outline-none transition-all"
+              maxLength={25}
+              className={`w-full rounded-md border ${errors.phone ? 'border-red-500' : 'border-white/10'} bg-black/50 px-4 py-3 text-white placeholder-white/30 focus:border-[#28c840] focus:ring-1 focus:ring-[#28c840] outline-none transition-all`}
               placeholder="+1 (555) 000-0000"
+              {...register('phone')}
             />
+            {errors.phone && <p className="mt-1 text-xs text-red-500">{errors.phone.message}</p>}
           </div>
 
           <div>
@@ -87,16 +111,16 @@ export default function CreateLeadPage() {
               Interest Level <span className="text-red-500">*</span>
             </label>
             <select
-              name="interestLevel"
               id="interestLevel"
-              required
-              className="w-full rounded-md border border-white/10 bg-[#1a1a1c] px-4 py-3 text-white outline-none focus:border-[#28c840] focus:ring-1 focus:ring-[#28c840] transition-all"
+              className={`w-full rounded-md border ${errors.interestLevel ? 'border-red-500' : 'border-white/10'} bg-[#1a1a1c] px-4 py-3 text-white outline-none focus:border-[#28c840] focus:ring-1 focus:ring-[#28c840] transition-all`}
+              {...register('interestLevel')}
             >
               <option value="High">High Interest 🔥</option>
               <option value="Medium">Medium Interest 🤝</option>
               <option value="Low">Low Interest 🧊</option>
               <option value="Not Interested">Not Interested 🚫</option>
             </select>
+            {errors.interestLevel && <p className="mt-1 text-xs text-red-500">{errors.interestLevel.message}</p>}
           </div>
 
           <div>
@@ -109,14 +133,15 @@ export default function CreateLeadPage() {
               </div>
               <input
                 type="number"
-                name="quotedPrice"
                 id="quotedPrice"
                 min="0"
                 step="0.01"
-                className="w-full rounded-md border border-white/10 bg-black/50 pl-8 pr-4 py-3 text-white placeholder-white/30 focus:border-[#28c840] focus:ring-1 focus:ring-[#28c840] outline-none transition-all"
+                className={`w-full rounded-md border ${errors.quotedPrice ? 'border-red-500' : 'border-white/10'} bg-black/50 pl-8 pr-4 py-3 text-white placeholder-white/30 focus:border-[#28c840] focus:ring-1 focus:ring-[#28c840] outline-none transition-all`}
                 placeholder="0.00"
+                {...register('quotedPrice')}
               />
             </div>
+            {errors.quotedPrice && <p className="mt-1 text-xs text-red-500">{errors.quotedPrice.message}</p>}
           </div>
 
           <div>
@@ -124,12 +149,14 @@ export default function CreateLeadPage() {
               Field Notes (Optional)
             </label>
             <textarea
-              name="notes"
               id="notes"
               rows={3}
-              className="w-full rounded-md border border-white/10 bg-black/50 px-4 py-3 text-white placeholder-white/30 focus:border-[#28c840] focus:ring-1 focus:ring-[#28c840] outline-none transition-all resize-none"
+              maxLength={1000}
+              className={`w-full rounded-md border ${errors.notes ? 'border-red-500' : 'border-white/10'} bg-black/50 px-4 py-3 text-white placeholder-white/30 focus:border-[#28c840] focus:ring-1 focus:ring-[#28c840] outline-none transition-all resize-none`}
               placeholder="Jot down specific requirements, next steps, or reasons for rejection..."
+              {...register('notes')}
             />
+            {errors.notes && <p className="mt-1 text-xs text-red-500">{errors.notes.message}</p>}
           </div>
         </div>
 

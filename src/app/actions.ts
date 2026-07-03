@@ -2,8 +2,9 @@
 
 import { supabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
-import { auth } from '@clerk/nextjs/server';
+import { auth, currentUser, clerkClient } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import { sendInvoiceEmail, sendAgreementEmail, sendAgreementSignedEmail } from '@/lib/email';
 
 export async function deleteAgreement(formData: FormData) {
   const { userId, orgId } = await auth();
@@ -182,12 +183,16 @@ export async function createInvoice(formData: FormData) {
   const dueDate = formData.get('dueDate') as string;
   const notes = formData.get('notes') as string;
 
+  const actualInvoiceNumber = invoiceNumber || `INV-${Math.floor(Math.random() * 10000)}`;
+  const actualIssueDate = issueDate || new Date().toISOString().split('T')[0];
+  const actualDueDate = dueDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
   const { data, error } = await supabase.from('invoices').insert({
     agreement_id: agreementId,
-    invoice_number: invoiceNumber || `INV-${Math.floor(Math.random() * 10000)}`,
+    invoice_number: actualInvoiceNumber,
     amount,
-    issue_date: issueDate || new Date().toISOString().split('T')[0],
-    due_date: dueDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    issue_date: actualIssueDate,
+    due_date: actualDueDate,
     notes: notes || '',
     user_id: userId,
     org_id: orgId || null,
@@ -195,6 +200,36 @@ export async function createInvoice(formData: FormData) {
 
   if (error) {
     throw new Error('Failed to create invoice: ' + error.message);
+  }
+
+  try {
+    const { data: agreement } = await supabase
+      .from('agreements')
+      .select('email, client_name, project_name')
+      .eq('id', agreementId)
+      .single();
+
+    if (agreement) {
+      const user = await currentUser();
+      const agencyEmail = user?.emailAddresses[0]?.emailAddress || 'noreply@agencyos.com';
+      // In production, you would set NEXT_PUBLIC_APP_URL in Vercel/environment
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === 'production' ? 'https://sign.hackarena.dev' : 'http://localhost:3000');
+      const link = `${appUrl}/invoice/${data.id}`;
+
+      await sendInvoiceEmail({
+        clientEmail: agreement.email,
+        clientName: agreement.client_name,
+        agencyEmail,
+        projectName: agreement.project_name,
+        invoiceNumber: actualInvoiceNumber,
+        amount,
+        dueDate: actualDueDate,
+        link,
+      });
+    }
+  } catch (emailError) {
+    console.error("Failed to send invoice email:", emailError);
+    // Don't throw the error so the invoice creation still succeeds even if email fails
   }
 
   revalidatePath('/dashboard/invoices');
@@ -245,4 +280,69 @@ export async function deleteInvoice(formData: FormData) {
 
   revalidatePath('/dashboard/invoices');
   return { success: true };
+}
+
+export async function sendAgreementEmailAction(agreementId: string) {
+  const { userId } = await auth();
+  if (!userId) throw new Error('Unauthorized');
+
+  const { data: agreement, error } = await supabase
+    .from('agreements')
+    .select('*')
+    .eq('id', agreementId)
+    .single();
+
+  if (error || !agreement) {
+    throw new Error('Agreement not found');
+  }
+
+  const user = await currentUser();
+  const agencyEmail = user?.emailAddresses[0]?.emailAddress || 'noreply@agencyos.com';
+  
+  // In production, you would set NEXT_PUBLIC_APP_URL in Vercel/environment
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === 'production' ? 'https://sign.hackarena.dev' : 'http://localhost:3000');
+  const link = `${appUrl}/sign/${agreementId}`;
+
+  await sendAgreementEmail({
+    clientEmail: agreement.email,
+    clientName: agreement.client_name,
+    agencyEmail,
+    projectName: agreement.project_name,
+    link,
+  });
+
+  return { success: true };
+}
+
+export async function notifyAgreementSignedAction(agreementId: string) {
+  const { data: agreement, error } = await supabase
+    .from('agreements')
+    .select('*')
+    .eq('id', agreementId)
+    .single();
+
+  if (error || !agreement || !agreement.user_id) {
+    console.error('Agreement not found or missing owner', error);
+    return;
+  }
+
+  try {
+    const client = await clerkClient();
+    const user = await client.users.getUser(agreement.user_id);
+    const agencyEmail = user.emailAddresses[0]?.emailAddress;
+    
+    if (agencyEmail) {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === 'production' ? 'https://sign.hackarena.dev' : 'http://localhost:3000');
+      const link = `${appUrl}/sign/${agreementId}`; 
+      
+      await sendAgreementSignedEmail({
+        agencyEmail,
+        clientName: agreement.client_name,
+        projectName: agreement.project_name,
+        link
+      });
+    }
+  } catch (err) {
+    console.error("Failed to fetch user or send notification", err);
+  }
 }

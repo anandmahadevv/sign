@@ -4,6 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import AgreementForm, { AgreementData } from '@/components/AgreementForm';
+import { sendAgreementEmailAction } from '@/app/actions';
 
 export default function CreateAgreement() {
   const router = useRouter();
@@ -38,6 +39,13 @@ export default function CreateAgreement() {
       }).select().single();
 
       if (error) throw error;
+      
+      try {
+        await sendAgreementEmailAction(inserted.id);
+      } catch (emailError) {
+        console.error("Failed to send agreement email:", emailError);
+      }
+
       return inserted.id;
     } catch (error: any) {
       alert('Error saving agreement: ' + error.message);

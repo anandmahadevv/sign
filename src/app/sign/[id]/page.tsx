@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { Download } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import { jsPDF } from 'jspdf';
+import { notifyAgreementSignedAction } from '@/app/actions';
 
 export default function SignAgreementPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -92,6 +93,10 @@ export default function SignAgreementPage({ params }: { params: Promise<{ id: st
     if (!error) {
       setSignature(sig);
       setAgreement({ ...agreement, client_ip: clientIp, signed_at: signedAt });
+      
+      // Notify agency in the background
+      notifyAgreementSignedAction(resolvedParams.id).catch(err => console.error("Notification error:", err));
+      
       alert('Agreement signed successfully!');
     } else {
       alert('Error saving signature: ' + error.message);
