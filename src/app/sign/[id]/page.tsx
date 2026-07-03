@@ -317,6 +317,12 @@ export default function SignAgreementPage({ params }: { params: Promise<{ id: st
             </div>
           )}
 
+          {/* Verification Footer */}
+          <div className="mt-16 border-t border-gray-200 pt-8 text-center text-gray-500 text-xs font-mono">
+            <p className="mb-1">Document ID: {agreement.id}</p>
+            <p>Verify this document's authenticity at <span className="font-semibold text-gray-700">sign.hackarena.dev/verify</span></p>
+          </div>
+
         </div>
       </div>
       </div>

@@ -71,6 +71,17 @@ const styles = StyleSheet.create({
   signatureDate: {
     fontSize: 8,
     color: '#666',
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 30,
+    left: 40,
+    right: 40,
+    textAlign: 'center',
+    color: '#999',
+    fontSize: 8,
+    borderTop: '1px solid #eee',
+    paddingTop: 10,
   }
 });
 
@@ -152,6 +163,13 @@ export function AgreementPDF({ data }: { data: any }) {
             <Text style={styles.signatureDate}>Date: _______________</Text>
           </View>
         </View>
+
+        {data.id && (
+          <View style={styles.footer} fixed>
+            <Text>Document ID: {data.id}</Text>
+            <Text>Verify this document's authenticity at sign.hackarena.dev/verify</Text>
+          </View>
+        )}
 
       </Page>
     </Document>

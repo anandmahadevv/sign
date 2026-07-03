@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Home, FileText, Settings, Plus, Menu, X, Users, Receipt } from 'lucide-react';
+import { Home, FileText, Settings, Plus, Menu, X, Users, Receipt, ShieldCheck } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { UserButton, Show, SignInButton, ClerkLoading, ClerkLoaded, OrganizationSwitcher } from '@clerk/nextjs';
 
@@ -106,6 +106,14 @@ export default function DashboardSidebar({ profile, userName, roleName }: { prof
             >
               <Users className="h-4 w-4" />
               Field Leads
+            </Link>
+            <Link
+              href="/verify"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              Verify Document
             </Link>
             <Link
               href="/dashboard/create"
