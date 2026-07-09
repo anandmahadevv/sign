@@ -1,7 +1,7 @@
 import { Resend } from 'resend';
 
-// Configure the Resend client using the API key
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Configure the Resend client using the API key, with a fallback so builds don't crash if env var is missing
+const resend = new Resend(process.env.RESEND_API_KEY || "re_dummy");
 
 export async function sendInvoiceEmail({
   clientEmail,
